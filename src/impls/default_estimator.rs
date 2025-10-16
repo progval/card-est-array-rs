@@ -85,10 +85,10 @@ impl<L: EstimationLogic + Clone, BL: Borrow<L>, B: AsRef<L::Backend> + AsMut<L::
 }
 
 impl<
-        L: EstimationLogic + MergeEstimationLogic + Clone,
-        BL: Borrow<L>,
-        B: AsRef<L::Backend> + AsMut<L::Backend>,
-    > MergeEstimator<L> for DefaultEstimator<L, BL, B>
+    L: EstimationLogic + MergeEstimationLogic + Clone,
+    BL: Borrow<L>,
+    B: AsRef<L::Backend> + AsMut<L::Backend>,
+> MergeEstimator<L> for DefaultEstimator<L, BL, B>
 {
     #[inline(always)]
     fn merge(&mut self, other: &L::Backend) {
