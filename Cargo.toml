@@ -1,7 +1,7 @@
 [package]
 name = "card-est-array"
-version = "0.1.0"
-edition = "2021"
+version = "0.1.1"
+edition = "2024"
 description = "Infrastructure for managing large arrays of cardinality estimators."
 repository = "https://github.com/vigna/card-est-array-rs/"
 license = "Apache-2.0 OR LGPL-2.1-or-later"
@@ -12,12 +12,14 @@ authors = [
 	"Matteo Dell'Acqua <dellacqua.matteo99@gmail.com>",
 	"Sebastiano Vigna <sebastiano.vigna@unimi.it>",
 ]
+rust-version = "1.85.0"
 
 [dependencies]
 anyhow = "1.0.97"
-common_traits = "0.11.2"
-sux = "0.7.2"
+common_traits = "0.12.0"
+sux = "0.9.0"
 sync-cell-slice = "0.9.11"
+value-traits = { version  ="0.2.0", features = ["std", "alloc"] }
 
 [dev-dependencies]
 xxhash-rust = { version = "0.8.15", features = ["xxh3"] }

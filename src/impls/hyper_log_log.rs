@@ -5,14 +5,12 @@
  * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
  */
 
-use anyhow::{ensure, Result};
+use anyhow::{Result, ensure};
 use common_traits::{CastableFrom, CastableInto, Number, UpcastableInto};
 use std::hash::*;
 use std::{borrow::Borrow, f64::consts::LN_2};
-use sux::{
-    bits::BitFieldVec,
-    traits::{BitFieldSliceMut, Word},
-};
+use sux::{bits::BitFieldVec, traits::Word};
+use value_traits::slices::{SliceByValue, SliceByValueMut};
 
 use crate::traits::{EstimationLogic, MergeEstimationLogic, SliceEstimationLogic};
 
@@ -121,10 +119,10 @@ impl<T, H: Clone, W: Word> HyperLogLog<T, H, W> {
 }
 
 impl<
-        T: Hash,
-        H: BuildHasher + Clone,
-        W: Word + UpcastableInto<HashResult> + CastableFrom<HashResult>,
-    > SliceEstimationLogic<W> for HyperLogLog<T, H, W>
+    T: Hash,
+    H: BuildHasher + Clone,
+    W: Word + UpcastableInto<HashResult> + CastableFrom<HashResult>,
+> SliceEstimationLogic<W> for HyperLogLog<T, H, W>
 {
     fn backend_len(&self) -> usize {
         self.words_per_estimator
@@ -132,10 +130,10 @@ impl<
 }
 
 impl<
-        T: Hash,
-        H: BuildHasher + Clone,
-        W: Word + UpcastableInto<HashResult> + CastableFrom<HashResult>,
-    > EstimationLogic for HyperLogLog<T, H, W>
+    T: Hash,
+    H: BuildHasher + Clone,
+    W: Word + UpcastableInto<HashResult> + CastableFrom<HashResult>,
+> EstimationLogic for HyperLogLog<T, H, W>
 {
     type Item = T;
     type Backend = [W];
@@ -207,10 +205,10 @@ pub struct HyperLogLogHelper<W> {
 }
 
 impl<
-        T: Hash,
-        H: BuildHasher + Clone,
-        W: Word + UpcastableInto<HashResult> + CastableFrom<HashResult>,
-    > MergeEstimationLogic for HyperLogLog<T, H, W>
+    T: Hash,
+    H: BuildHasher + Clone,
+    W: Word + UpcastableInto<HashResult> + CastableFrom<HashResult>,
+> MergeEstimationLogic for HyperLogLog<T, H, W>
 {
     type Helper = HyperLogLogHelper<W>;
 
@@ -415,8 +413,8 @@ impl<H, W: Word> HyperLogLogBuilder<H, W> {
         let msb_w = W::ONE << (register_size - 1);
         let lsb_w = W::ONE;
         for i in 0..number_of_registers {
-            msb.set(i, msb_w);
-            lsb.set(i, lsb_w);
+            msb.set_value(i, msb_w);
+            lsb.set_value(i, lsb_w);
         }
 
         Ok(HyperLogLog {

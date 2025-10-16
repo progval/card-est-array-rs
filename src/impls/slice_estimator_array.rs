@@ -43,7 +43,8 @@ impl<L: SliceEstimationLogic<W> + Sync, W: Word, S: AsRef<[SyncCell<W>]> + Sync>
         debug_assert!(content.as_ref().len() == self.logic.backend_len());
         let offset = index * self.logic.backend_len();
         for (c, &b) in self.backend.as_ref()[offset..].iter().zip(content.as_ref()) {
-            c.set(b)
+            // SAFETY: we are the only ones writing to this cell
+            unsafe { c.set(b) }
         }
     }
 
@@ -58,12 +59,16 @@ impl<L: SliceEstimationLogic<W> + Sync, W: Word, S: AsRef<[SyncCell<W>]> + Sync>
             .iter_mut()
             .zip(self.backend.as_ref()[offset..].iter())
         {
-            *b = c.get();
+            // SAFETY: we are the only ones reading from this cell
+            *b = unsafe { c.get() }
         }
     }
 
     unsafe fn clear(&self) {
-        self.backend.as_ref().iter().for_each(|c| c.set(W::ZERO))
+        self.backend
+            .as_ref()
+            .iter()
+            .for_each(|c| unsafe { c.set(W::ZERO) })
     }
 
     fn len(&self) -> usize {
