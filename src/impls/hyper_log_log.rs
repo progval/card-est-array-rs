@@ -151,7 +151,7 @@ impl<
         )
     }
 
-    fn add(&self, mut backend: &mut Self::Backend, element: impl Borrow<T>) {
+    fn add(&self, backend: &mut Self::Backend, element: impl Borrow<T>) {
         let x = self.build_hasher.hash_one(element.borrow());
         let j = x & self.num_registers_minus_1;
         let r =
@@ -161,7 +161,7 @@ impl<
         debug_assert!(r < (1 << self.register_size) - 1);
         debug_assert!(register < self.num_registers);
 
-        let current_value = self.get_register_unchecked(&mut backend, register);
+        let current_value = self.get_register_unchecked(&*backend, register);
         let candidate_value = r + 1;
         let new_value = std::cmp::max(current_value, candidate_value.cast());
         if current_value != new_value {
@@ -189,12 +189,12 @@ impl<
     }
 
     fn clear(&self, backend: &mut [W]) {
-        backend.as_mut().fill(W::ZERO);
+        backend.fill(W::ZERO);
     }
 
     fn set(&self, dst: &mut [W], src: &[W]) {
-        debug_assert_eq!(dst.as_mut().len(), src.as_ref().len());
-        dst.as_mut().copy_from_slice(src.as_ref());
+        debug_assert_eq!(dst.len(), src.len());
+        dst.copy_from_slice(src);
     }
 }
 
@@ -238,7 +238,7 @@ pub struct HyperLogLogBuilder<H, W = usize> {
     build_hasher: H,
     log_2_num_registers: usize,
     n: usize,
-    _marker: std::marker::PhantomData<(H, W)>,
+    _marker: std::marker::PhantomData<W>,
 }
 
 impl HyperLogLogBuilder<BuildHasherDefault<DefaultHasher>, usize> {
@@ -379,6 +379,11 @@ impl<H, W: Word> HyperLogLogBuilder<H, W> {
     pub fn build<T>(self) -> Result<HyperLogLog<T, H, W>> {
         let log_2_num_registers = self.log_2_num_registers;
         let num_elements = self.n;
+
+        ensure!(
+            num_elements > 0,
+            "the upper bound on the number of distinct elements must be positive"
+        );
 
         // This ensures estimators are at least 16-bit-aligned.
         ensure!(

@@ -76,4 +76,4 @@ reflect those of the European Union or the Italian MUR. Neither the European
 Union nor the Italian MUR can be held responsible for them.
 
 [mergeable]:
-    <https://docs.rs/webgraph-algo/latest/webgraph-algo/traits/estimator/trait.MergeEstimationLogic.html>
+    <https://docs.rs/card-est-array/latest/card_est_array/traits/trait.MergeEstimationLogic.html>

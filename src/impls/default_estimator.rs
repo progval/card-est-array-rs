@@ -48,6 +48,8 @@ impl<L: EstimationLogic + Clone, BL: Borrow<L>, B: AsMut<L::Backend>> AsMut<L::B
 
 impl<L: EstimationLogic + Clone, BL: Borrow<L>, B: AsRef<L::Backend>> Estimator<L>
     for DefaultEstimator<L, BL, B>
+where
+    for<'a> Box<L::Backend>: From<&'a L::Backend>,
 {
     type OwnedEstimator = DefaultEstimator<L, L, Box<L::Backend>>;
 
@@ -59,14 +61,17 @@ impl<L: EstimationLogic + Clone, BL: Borrow<L>, B: AsRef<L::Backend>> Estimator<
     fn estimate(&self) -> f64 {
         self.logic.borrow().estimate(self.backend.as_ref())
     }
+
     #[inline(always)]
     fn into_owned(self) -> Self::OwnedEstimator {
-        todo!()
+        DefaultEstimator::new(self.logic.borrow().clone(), Box::from(self.backend.as_ref()))
     }
 }
 
 impl<L: EstimationLogic + Clone, BL: Borrow<L>, B: AsRef<L::Backend> + AsMut<L::Backend>>
     EstimatorMut<L> for DefaultEstimator<L, BL, B>
+where
+    for<'a> Box<L::Backend>: From<&'a L::Backend>,
 {
     #[inline(always)]
     fn add(&mut self, element: impl Borrow<L::Item>) {
@@ -89,6 +94,8 @@ impl<
     BL: Borrow<L>,
     B: AsRef<L::Backend> + AsMut<L::Backend>,
 > MergeEstimator<L> for DefaultEstimator<L, BL, B>
+where
+    for<'a> Box<L::Backend>: From<&'a L::Backend>,
 {
     #[inline(always)]
     fn merge(&mut self, other: &L::Backend) {

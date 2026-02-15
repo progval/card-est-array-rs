@@ -10,10 +10,10 @@ use std::borrow::Borrow;
 /// A kind of cardinality estimator.
 ///
 /// Implementations of this trait describe the behavior of a kind of cardinality
-/// estimator. Instances contains usually parameters that further refine the
+/// estimator. An instance usually contains parameters that further refine the
 /// behavior and the precision of the estimator.
 ///
-/// The trait contain the following items:
+/// The trait contains the following items:
 ///
 /// * Three associated types:
 ///     - `Item`: the type of items the estimator accepts.
@@ -37,7 +37,7 @@ use std::borrow::Borrow;
 /// If you plan to use a small number of non-related estimators, we suggest you
 /// [create](EstimationLogic::new_estimator) them and use their methods. More
 /// complex applications, coordinating large numbers of estimators, will find
-/// backed-based methods useful.
+/// backend-based methods useful.
 pub trait EstimationLogic {
     /// The type of items.
     type Item;
@@ -110,7 +110,7 @@ pub trait SliceEstimationLogic<T>: EstimationLogic<Backend = [T]> {
 /// Immutable estimators are usually immutable views over some larger structure,
 /// or they contain some useful immutable state that can be reused.
 ///
-/// An estimator must implement [`AsRef`] so to return a reference to its backend.
+/// An estimator must implement [`AsRef`] to return a reference to its backend.
 pub trait Estimator<L: EstimationLogic + ?Sized>: AsRef<L::Backend> {
     /// The type returned by [`Estimator::into_owned`].
     type OwnedEstimator: EstimatorMut<L>;
@@ -137,7 +137,7 @@ pub trait EstimatorMut<L: EstimationLogic + ?Sized>: Estimator<L> + AsMut<L::Bac
     /// Clears the estimator, making it empty.
     fn clear(&mut self);
 
-    /// Sets the contents of `self` to the the given backend.
+    /// Sets the contents of `self` to the given backend.
     ///
     /// If you need to set to the content of another estimator, just use
     /// [`as_ref`](AsRef) on the estimator. This approach makes it

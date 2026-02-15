@@ -1,6 +1,6 @@
 [package]
 name = "card-est-array"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 description = "Infrastructure for managing large arrays of cardinality estimators."
 repository = "https://github.com/vigna/card-est-array-rs/"
@@ -14,10 +14,13 @@ authors = [
 ]
 rust-version = "1.85.0"
 
+[features]
+slow_tests = []
+
 [dependencies]
 anyhow = "1.0.97"
 common_traits = "0.12.0"
-sux = "0.9.0"
+sux = "0.12.0"
 sync-cell-slice = "0.9.11"
 value-traits = { version  ="0.2.0", features = ["std", "alloc"] }
 

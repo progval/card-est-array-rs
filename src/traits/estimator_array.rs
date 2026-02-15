@@ -7,7 +7,7 @@
 
 use super::estimator::{EstimationLogic, Estimator, EstimatorMut};
 
-/// An array of immutable estimators sharing a [`EstimationLogic`].
+/// An array of immutable estimators sharing an [`EstimationLogic`].
 ///
 /// Arrays of estimators are useful because they share the same logic, thus
 /// saving space. Moreover, by hiding the implementation, it is possible to
@@ -45,7 +45,7 @@ pub trait EstimatorArray<L: EstimationLogic + ?Sized> {
     }
 }
 
-/// An array of mutable estimators sharing a [`EstimationLogic`].
+/// An array of mutable estimators sharing an [`EstimationLogic`].
 pub trait EstimatorArrayMut<L: EstimationLogic + ?Sized>: EstimatorArray<L> {
     /// The type of mutable estimator returned by
     /// [`get_estimator_mut`](EstimatorArrayMut::get_estimator_mut).
@@ -80,7 +80,7 @@ pub trait AsSyncArray<L: EstimationLogic + ?Sized> {
     fn as_sync_array(&mut self) -> Self::SyncEstimatorArray<'_>;
 }
 
-/// An array of mutable estimators sharing a [`EstimationLogic`] that can be shared
+/// An array of mutable estimators sharing an [`EstimationLogic`] that can be shared
 /// between threads.
 ///
 /// This trait has the same purpose of [`EstimatorArrayMut`], but can be shared
@@ -92,7 +92,7 @@ pub trait AsSyncArray<L: EstimationLogic + ?Sized> {
 ///
 /// # Safety
 ///
-/// The methods of this trait are unsafe because multiple thread can
+/// The methods of this trait are unsafe because multiple threads can
 /// concurrently access the same estimator array. The caller must ensure that
 /// there are no data races.
 pub trait SyncEstimatorArray<L: EstimationLogic + ?Sized>: Sync {

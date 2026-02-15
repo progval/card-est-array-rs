@@ -40,7 +40,7 @@ impl<L: SliceEstimationLogic<W> + Sync, W: Word, S: AsRef<[SyncCell<W>]> + Sync>
     SyncEstimatorArray<L> for SyncSliceEstimatorArray<L, W, S>
 {
     unsafe fn set(&self, index: usize, content: &L::Backend) {
-        debug_assert!(content.as_ref().len() == self.logic.backend_len());
+        debug_assert_eq!(content.as_ref().len(), self.logic.backend_len());
         let offset = index * self.logic.backend_len();
         for (c, &b) in self.backend.as_ref()[offset..].iter().zip(content.as_ref()) {
             // SAFETY: we are the only ones writing to this cell
@@ -53,7 +53,7 @@ impl<L: SliceEstimationLogic<W> + Sync, W: Word, S: AsRef<[SyncCell<W>]> + Sync>
     }
 
     unsafe fn get(&self, index: usize, backend: &mut L::Backend) {
-        debug_assert!(backend.as_ref().len() == self.logic.backend_len());
+        debug_assert_eq!(backend.as_ref().len(), self.logic.backend_len());
         let offset = index * self.logic.backend_len();
         for (b, c) in backend
             .iter_mut()
@@ -81,7 +81,7 @@ impl<L: SliceEstimationLogic<W>, W, S: AsRef<[W]>> SliceEstimatorArray<L, W, S> 
     #[inline(always)]
     pub fn len(&self) -> usize {
         let backend = self.backend.as_ref();
-        debug_assert!(backend.len() % self.logic.backend_len() == 0);
+        debug_assert_eq!(backend.len() % self.logic.backend_len(), 0);
         backend.len() / self.logic.backend_len()
     }
 

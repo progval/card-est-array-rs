@@ -17,15 +17,20 @@ use xxhash_rust::xxh3::Xxh3Builder;
 /// The number of trials to run to ensure a bad seed does not
 /// fail the test
 const NUM_TRIALS: u64 = 100;
-/// The requires number of successes required for the test to pass
+/// The required number of successes required for the test to pass
 const REQUIRED_TRIALS: u64 = 90;
+
+#[cfg(feature = "slow_tests")]
+const SIZES: &[usize] = &[1, 10, 100, 1000, 100_000];
+#[cfg(not(feature = "slow_tests"))]
+const SIZES: &[usize] = &[1, 10, 100, 1000];
 
 #[test]
 fn test_single() -> Result<()> {
-    let sizes = [1, 10, 100, 1000, 100_000];
+    let sizes = SIZES;
     let log2ms = [4, 6, 8, 12];
 
-    for size in sizes {
+    for &size in sizes {
         for log2m in log2ms {
             let rsd = HyperLogLog::rel_std(log2m);
             let mut correct = 0;
@@ -67,10 +72,10 @@ fn test_single() -> Result<()> {
 
 #[test]
 fn test_double() -> Result<()> {
-    let sizes = [1, 10, 100, 1000, 100_000];
+    let sizes = SIZES;
     let log2ms = [4, 6, 8, 12];
 
-    for size in sizes {
+    for &size in sizes {
         for log2m in log2ms {
             let rsd = HyperLogLog::rel_std(log2m);
             let mut correct_0 = 0;
@@ -126,10 +131,10 @@ fn test_double() -> Result<()> {
 
 #[test]
 fn test_merge() -> Result<()> {
-    let sizes = [1, 10, 100, 1000, 100_000];
+    let sizes = SIZES;
     let log2ms = [4, 6, 8, 12];
 
-    for size in sizes {
+    for &size in sizes {
         for log2m in log2ms {
             let rsd = HyperLogLog::rel_std(log2m);
             let mut correct_0 = 0;
@@ -188,10 +193,10 @@ fn test_merge() -> Result<()> {
 
 #[test]
 fn test_merge_array() -> Result<()> {
-    let sizes = [1, 10, 100, 1000, 100_000];
+    let sizes = SIZES;
     let log2ms = [4, 6, 8, 12];
 
-    for size in sizes {
+    for &size in sizes {
         for log2m in log2ms {
             let rsd = HyperLogLog::rel_std(log2m);
             let mut correct_0 = 0;
