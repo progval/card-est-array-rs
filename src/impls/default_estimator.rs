@@ -67,7 +67,10 @@ where
 
     #[inline(always)]
     fn into_owned(self) -> Self::OwnedEstimator {
-        DefaultEstimator::new(self.logic.borrow().clone(), Box::from(self.backend.as_ref()))
+        DefaultEstimator::new(
+            self.logic.borrow().clone(),
+            Box::from(self.backend.as_ref()),
+        )
     }
 }
 
