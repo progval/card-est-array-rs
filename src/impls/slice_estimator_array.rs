@@ -40,20 +40,21 @@ impl<L: SliceEstimationLogic<W> + Sync, W: Word, S: AsRef<[SyncCell<W>]> + Sync>
     SyncEstimatorArray<L> for SyncSliceEstimatorArray<L, W, S>
 {
     unsafe fn set(&self, index: usize, content: &L::Backend) {
-        debug_assert_eq!(content.as_ref().len(), self.logic.backend_len());
+        debug_assert_eq!(content.len(), self.logic.backend_len());
         let offset = index * self.logic.backend_len();
-        for (c, &b) in self.backend.as_ref()[offset..].iter().zip(content.as_ref()) {
+        for (c, &b) in self.backend.as_ref()[offset..].iter().zip(content) {
             // SAFETY: we are the only ones writing to this cell
             unsafe { c.set(b) }
         }
     }
 
+    #[inline(always)]
     fn logic(&self) -> &L {
         &self.logic
     }
 
     unsafe fn get(&self, index: usize, backend: &mut L::Backend) {
-        debug_assert_eq!(backend.as_ref().len(), self.logic.backend_len());
+        debug_assert_eq!(backend.len(), self.logic.backend_len());
         let offset = index * self.logic.backend_len();
         for (b, c) in backend
             .iter_mut()
@@ -71,24 +72,9 @@ impl<L: SliceEstimationLogic<W> + Sync, W: Word, S: AsRef<[SyncCell<W>]> + Sync>
             .for_each(|c| unsafe { c.set(W::ZERO) })
     }
 
+    #[inline(always)]
     fn len(&self) -> usize {
         self.backend.as_ref().len() / self.logic.backend_len()
-    }
-}
-
-impl<L: SliceEstimationLogic<W>, W, S: AsRef<[W]>> SliceEstimatorArray<L, W, S> {
-    /// Returns the number of estimators in the array.
-    #[inline(always)]
-    pub fn len(&self) -> usize {
-        let backend = self.backend.as_ref();
-        debug_assert_eq!(backend.len() % self.logic.backend_len(), 0);
-        backend.len() / self.logic.backend_len()
-    }
-
-    /// Returns `true` if the array contains no estimators.
-    #[inline(always)]
-    pub fn is_empty(&self) -> bool {
-        self.backend.as_ref().is_empty()
     }
 }
 
@@ -110,12 +96,14 @@ impl<L: SliceEstimationLogic<W> + Clone + Sync, W: Word, S: AsMut<[W]>> AsSyncAr
 }
 
 impl<L, W, S: AsRef<[W]>> AsRef<[W]> for SliceEstimatorArray<L, W, S> {
+    #[inline(always)]
     fn as_ref(&self) -> &[W] {
         self.backend.as_ref()
     }
 }
 
 impl<L, W, S: AsMut<[W]>> AsMut<[W]> for SliceEstimatorArray<L, W, S> {
+    #[inline(always)]
     fn as_mut(&mut self) -> &mut [W] {
         self.backend.as_mut()
     }
@@ -164,7 +152,9 @@ impl<L: SliceEstimationLogic<W> + Clone, W: Word, S: AsRef<[W]>> EstimatorArray<
 
     #[inline(always)]
     fn len(&self) -> usize {
-        self.len()
+        let backend = self.backend.as_ref();
+        debug_assert_eq!(backend.len() % self.logic.backend_len(), 0);
+        backend.len() / self.logic.backend_len()
     }
 }
 

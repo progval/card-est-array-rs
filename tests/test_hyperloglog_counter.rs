@@ -17,7 +17,7 @@ use xxhash_rust::xxh3::Xxh3Builder;
 /// The number of trials to run to ensure a bad seed does not
 /// fail the test
 const NUM_TRIALS: u64 = 100;
-/// The required number of successes required for the test to pass
+/// The number of successes required for the test to pass
 const REQUIRED_TRIALS: u64 = 90;
 
 #[cfg(feature = "slow_tests")]

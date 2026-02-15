@@ -31,7 +31,7 @@ type HashResult = u64;
 /// An important constraint is that `W` must be able to represent exactly the
 /// backend of an estimator. While usually `usize` will work (and it is the default
 /// type chosen by [`new`](HyperLogLogBuilder::new)), with odd register sizes
-/// and small number of registers it might be necessary to select a smaller
+/// and a small number of registers it might be necessary to select a smaller
 /// type, resulting in slower merges. For example, using 16 5-bit registers one
 /// needs to use `u16`, whereas for 16 6-bit registers `u32` will be sufficient.
 #[derive(Debug, PartialEq)]
@@ -124,6 +124,7 @@ impl<
     W: Word + UpcastableInto<HashResult> + CastableFrom<HashResult>,
 > SliceEstimationLogic<W> for HyperLogLog<T, H, W>
 {
+    #[inline(always)]
     fn backend_len(&self) -> usize {
         self.words_per_estimator
     }
@@ -188,10 +189,12 @@ impl<
         estimate
     }
 
+    #[inline(always)]
     fn clear(&self, backend: &mut [W]) {
         backend.fill(W::ZERO);
     }
 
+    #[inline(always)]
     fn set(&self, dst: &mut [W], src: &[W]) {
         debug_assert_eq!(dst.len(), src.len());
         dst.copy_from_slice(src);
@@ -219,6 +222,7 @@ impl<
         }
     }
 
+    #[inline(always)]
     fn merge_with_helper(&self, dst: &mut [W], src: &[W], helper: &mut Self::Helper) {
         merge_hyperloglog_bitwise(
             dst,
@@ -321,7 +325,7 @@ impl<H, W: Word> HyperLogLogBuilder<H, W> {
         self.log_2_num_reg(HyperLogLog::log_2_num_of_registers(rsd))
     }
 
-    /// Sets the base-2 logarithm of the number of register.
+    /// Sets the base-2 logarithm of the number of registers.
     ///
     /// ## Note
     /// This is a low-level alternative to [`Self::rsd`]. Calling one after the
@@ -356,7 +360,7 @@ impl<H, W: Word> HyperLogLogBuilder<H, W> {
 
     /// Sets the [`BuildHasher`] to use.
     ///
-    /// Using this method you can select a specific hashed based on one or more
+    /// Using this method you can select a specific hasher based on one or more
     /// seeds.
     pub fn build_hasher<H2>(self, build_hasher: H2) -> HyperLogLogBuilder<H2, W> {
         HyperLogLogBuilder {
@@ -375,7 +379,7 @@ impl<H, W: Word> HyperLogLogBuilder<H, W> {
     /// # Errors
     ///
     /// Errors will be caused by consistency checks (at least 16 registers per
-    /// estimator, backend bits divisible exactly `W::BITS`)
+    /// estimator, backend bits exactly divisible by `W::BITS`)
     pub fn build<T>(self) -> Result<HyperLogLog<T, H, W>> {
         let log_2_num_registers = self.log_2_num_registers;
         let num_elements = self.n;

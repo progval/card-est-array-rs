@@ -31,7 +31,7 @@ use std::borrow::Borrow;
 /// to manipulate families of estimators with the same backend and the same
 /// configuration (i.e., precision) in a controlled way, and saving space by
 /// sharing common parameters. This is particularly useful to build [arrays of
-/// cardinality estimators](crate::traits::EstimatorArray), which are array of
+/// cardinality estimators](crate::traits::EstimatorArray), which are arrays of
 /// estimators sharing the same logic.
 ///
 /// If you plan to use a small number of non-related estimators, we suggest you
@@ -72,12 +72,12 @@ pub trait EstimationLogic {
 /// one would obtain by adding to an empty estimator all the elements
 /// added to the two estimators, computing, in practice, a set union.
 pub trait MergeEstimationLogic: EstimationLogic {
-    /// The type of the helper use in merge calculations.
+    /// The type of the helper used in merge calculations.
     ///
     /// Merge calculation might require temporary allocations. To mitigate
     /// excessive allocation, it is possible to [obtain a
-    /// helper](MergeEstimationLogic::new_helper) and reusing it for several
-    /// [merge operations](MergeEstimationLogic::merge_with_helper)
+    /// helper](MergeEstimationLogic::new_helper) and reuse it for several
+    /// [merge operations](MergeEstimationLogic::merge_with_helper).
     type Helper;
 
     /// Creates a new helper to use in merge operations.
@@ -128,7 +128,7 @@ pub trait Estimator<L: EstimationLogic + ?Sized>: AsRef<L::Backend> {
 
 /// A mutable estimator.
 ///
-/// A mutable estimator must implement [`AsMut`] so to return a mutable
+/// A mutable estimator must implement [`AsMut`] to return a mutable
 /// reference to its backend.
 pub trait EstimatorMut<L: EstimationLogic + ?Sized>: Estimator<L> + AsMut<L::Backend> {
     /// Adds an element to the estimator.

@@ -33,6 +33,7 @@ impl<L: EstimationLogic, BL: Borrow<L>, B> DefaultEstimator<L, BL, B> {
 impl<L: EstimationLogic + Clone, BL: Borrow<L>, B: AsRef<L::Backend>> AsRef<L::Backend>
     for DefaultEstimator<L, BL, B>
 {
+    #[inline(always)]
     fn as_ref(&self) -> &L::Backend {
         self.backend.as_ref()
     }
@@ -41,6 +42,7 @@ impl<L: EstimationLogic + Clone, BL: Borrow<L>, B: AsRef<L::Backend>> AsRef<L::B
 impl<L: EstimationLogic + Clone, BL: Borrow<L>, B: AsMut<L::Backend>> AsMut<L::Backend>
     for DefaultEstimator<L, BL, B>
 {
+    #[inline(always)]
     fn as_mut(&mut self) -> &mut L::Backend {
         self.backend.as_mut()
     }
@@ -53,6 +55,7 @@ where
 {
     type OwnedEstimator = DefaultEstimator<L, L, Box<L::Backend>>;
 
+    #[inline(always)]
     fn logic(&self) -> &L {
         self.logic.borrow()
     }

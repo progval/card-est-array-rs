@@ -53,7 +53,7 @@ Facebook](https://doi.org/10.1145/2380718.2380723).
 
 The purpose of this crate is to lay the foundation of the infrastructure that is
 necessary to implement HyperBall in the [Rust port of the WebGraph
-framework](http://crates.io/crates/webgraph). We provide implementation of
+framework](https://crates.io/crates/webgraph). We provide implementation of
 cardinality estimators and structures handling large arrays of estimators
 sharing the same parameters and logic with minimal memory overhead. Sharing
 parameters is essential for scaling to billions of estimators, and this is why a

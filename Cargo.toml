@@ -21,8 +21,8 @@ slow_tests = []
 anyhow = "1.0.97"
 common_traits = "0.12.0"
 sux = "0.12.0"
-sync-cell-slice = "0.9.11"
-value-traits = { version  ="0.2.0", features = ["std", "alloc"] }
+sync-cell-slice = "0.9.12"
+value-traits = { version  ="0.2.1", features = ["std", "alloc"] }
 
 [dev-dependencies]
 xxhash-rust = { version = "0.8.15", features = ["xxh3"] }
