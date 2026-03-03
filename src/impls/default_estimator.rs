@@ -21,7 +21,7 @@ impl<L: EstimationLogic, BL: Borrow<L>, B> DefaultEstimator<L, BL, B> {
     /// # Arguments
     /// * `logic`: the estimator logic.
     /// * `backend`: the estimator's backend.
-    pub fn new(logic: BL, backend: B) -> Self {
+    pub const fn new(logic: BL, backend: B) -> Self {
         Self {
             logic,
             backend,

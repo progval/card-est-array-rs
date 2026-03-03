@@ -248,9 +248,9 @@ pub struct HyperLogLogBuilder<H, W = usize> {
 impl HyperLogLogBuilder<BuildHasherDefault<DefaultHasher>, usize> {
     /// Creates a new builder for a [`HyperLogLog`] logic with a default word
     /// type of `usize`.
-    pub fn new(n: usize) -> Self {
+    pub const fn new(n: usize) -> Self {
         Self {
-            build_hasher: BuildHasherDefault::default(),
+            build_hasher: BuildHasherDefault::new(),
             log_2_num_registers: 4,
             n,
             _marker: std::marker::PhantomData,
@@ -334,7 +334,7 @@ impl<H, W: Word> HyperLogLogBuilder<H, W> {
     /// # Arguments
     /// * `log_2_num_registers`: the logarithm of the number of registers per
     ///   estimator.
-    pub fn log_2_num_reg(mut self, log_2_num_registers: usize) -> Self {
+    pub const fn log_2_num_reg(mut self, log_2_num_registers: usize) -> Self {
         self.log_2_num_registers = log_2_num_registers;
         self
     }
@@ -353,7 +353,7 @@ impl<H, W: Word> HyperLogLogBuilder<H, W> {
     }
 
     /// Sets the upper bound on the number of elements.
-    pub fn num_elements(mut self, n: usize) -> Self {
+    pub const fn num_elements(mut self, n: usize) -> Self {
         self.n = n;
         self
     }
