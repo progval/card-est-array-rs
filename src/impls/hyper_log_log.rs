@@ -241,18 +241,21 @@ impl<
 pub struct HyperLogLogBuilder<H, W = usize> {
     build_hasher: H,
     log_2_num_registers: usize,
-    n: usize,
+    num_elements: usize,
     _marker: std::marker::PhantomData<W>,
 }
 
 impl HyperLogLogBuilder<BuildHasherDefault<DefaultHasher>, usize> {
     /// Creates a new builder for a [`HyperLogLog`] logic with a default word
     /// type of `usize`.
-    pub const fn new(n: usize) -> Self {
+    ///
+    /// # Arguments
+    /// * `num_elements`: an upper bound on the number of distinct elements.
+    pub const fn new(num_elements: usize) -> Self {
         Self {
             build_hasher: BuildHasherDefault::new(),
             log_2_num_registers: 4,
-            n,
+            num_elements,
             _marker: std::marker::PhantomData,
         }
     }
@@ -305,9 +308,12 @@ impl HyperLogLog<(), (), ()> {
     /// distinct elements.
     ///
     /// # Arguments
-    /// * `n`: an upper bound on the number of distinct elements.
-    pub fn register_size(n: usize) -> usize {
-        std::cmp::max(5, (((n as f64).ln() / LN_2) / LN_2).ln().ceil() as usize)
+    /// * `num_elements`: an upper bound on the number of distinct elements.
+    pub fn register_size(num_elements: usize) -> usize {
+        std::cmp::max(
+            5,
+            (((num_elements as f64).ln() / LN_2) / LN_2).ln().ceil() as usize,
+        )
     }
 }
 
@@ -345,7 +351,7 @@ impl<H, W: Word> HyperLogLogBuilder<H, W> {
     /// choice of `W2`.
     pub fn word_type<W2>(self) -> HyperLogLogBuilder<H, W2> {
         HyperLogLogBuilder {
-            n: self.n,
+            num_elements: self.num_elements,
             build_hasher: self.build_hasher,
             log_2_num_registers: self.log_2_num_registers,
             _marker: std::marker::PhantomData,
@@ -353,8 +359,8 @@ impl<H, W: Word> HyperLogLogBuilder<H, W> {
     }
 
     /// Sets the upper bound on the number of elements.
-    pub const fn num_elements(mut self, n: usize) -> Self {
-        self.n = n;
+    pub const fn num_elements(mut self, num_elements: usize) -> Self {
+        self.num_elements = num_elements;
         self
     }
 
@@ -364,7 +370,7 @@ impl<H, W: Word> HyperLogLogBuilder<H, W> {
     /// seeds.
     pub fn build_hasher<H2>(self, build_hasher: H2) -> HyperLogLogBuilder<H2, W> {
         HyperLogLogBuilder {
-            n: self.n,
+            num_elements: self.num_elements,
             log_2_num_registers: self.log_2_num_registers,
             build_hasher,
             _marker: std::marker::PhantomData,
@@ -382,7 +388,7 @@ impl<H, W: Word> HyperLogLogBuilder<H, W> {
     /// estimator, backend bits exactly divisible by `W::BITS`)
     pub fn build<T>(self) -> Result<HyperLogLog<T, H, W>> {
         let log_2_num_registers = self.log_2_num_registers;
-        let num_elements = self.n;
+        let num_elements = self.num_elements;
 
         ensure!(
             num_elements > 0,
