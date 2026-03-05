@@ -8,6 +8,7 @@
 use anyhow::{Result, ensure};
 use common_traits::{CastableFrom, CastableInto, Number, UpcastableInto};
 use std::hash::*;
+use std::num::NonZeroUsize;
 use std::{borrow::Borrow, f64::consts::LN_2};
 use sux::{bits::BitFieldVec, traits::Word};
 use value_traits::slices::{SliceByValue, SliceByValueMut};
@@ -34,6 +35,12 @@ type HashResult = u64;
 /// and a small number of registers it might be necessary to select a smaller
 /// type, resulting in slower merges. For example, using 16 5-bit registers one
 /// needs to use `u16`, whereas for 16 6-bit registers `u32` will be sufficient.
+///
+/// Formally, this means that `W::BITS` must divide
+/// `(1 << log_2_num_registers) * register_size` (using
+/// [`HyperLogLog::register_size(num_elements)`](HyperLogLog::register_size)).
+/// [`HyperLogLogBuilder::min_log_2_num_reg`] returns the minimum value for
+/// `log_2_num_registers` that satisfies this property.
 #[derive(Debug, PartialEq)]
 pub struct HyperLogLog<T, H, W> {
     build_hasher: H,
@@ -345,6 +352,16 @@ impl<H, W: Word> HyperLogLogBuilder<H, W> {
         self
     }
 
+    /// Returns the minimum value allowed for [`Self::log_2_num_reg`] given the current value of
+    /// [`Self::num_elements`].
+    pub fn min_log_2_num_reg(&self) -> usize {
+        let register_size = HyperLogLog::register_size(self.num_elements);
+        let register_size = NonZeroUsize::try_from(register_size).expect("register_size is zero");
+        let min_num_regs = W::BITS / highest_power_of_2_dividing(register_size);
+        assert_eq!(min_num_regs, min_num_regs.next_power_of_two());
+        min_num_regs.trailing_zeros() as usize // log2(min_num_regs)
+    }
+
     /// Sets the type `W` to use to represent backends.
     ///
     /// See the [`logic documentation`](HyperLogLog) for the limitations on the
@@ -417,9 +434,10 @@ impl<H, W: Word> HyperLogLogBuilder<H, W> {
 
         // This ensures estimators are always aligned to W
         ensure!(
-            est_size_in_bits % W::BITS == 0,
-            "W should allow estimator backends to be aligned. Use {} or smaller unsigned integer types",
-            min_alignment(est_size_in_bits)
+            number_of_registers * register_size % W::BITS == 0,
+            "W should allow estimator backends to be aligned. Use {} or smaller unsigned integer types; or increase log_2_num_registers to be >= {}",
+            min_alignment(est_size_in_bits),
+            self.min_log_2_num_reg(),
         );
         let est_size_in_words = est_size_in_bits / W::BITS;
 
@@ -593,4 +611,19 @@ fn merge_hyperloglog_bitwise<W: Word>(
         .for_each(|((x_word, &y_word), &mask_word)| {
             *x_word = *x_word ^ ((*x_word ^ y_word) & mask_word);
         });
+}
+
+fn highest_power_of_2_dividing(n: NonZeroUsize) -> usize {
+    1 << n.trailing_zeros()
+}
+
+#[test]
+fn test_highest_power_of_2_dividing() {
+    let powers_of_2: Vec<_> = (1..=20)
+        .map(|n| highest_power_of_2_dividing(n.try_into().unwrap()))
+        .collect();
+    assert_eq!(
+        powers_of_2,
+        vec![1, 2, 1, 4, 1, 2, 1, 8, 1, 2, 1, 4, 1, 2, 1, 16, 1, 2, 1, 4]
+    );
 }

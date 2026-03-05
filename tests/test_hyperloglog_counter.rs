@@ -12,6 +12,7 @@ use card_est_array::{
         EstimationLogic, Estimator, EstimatorArray, EstimatorArrayMut, EstimatorMut, MergeEstimator,
     },
 };
+use sux::traits::Word;
 use xxhash_rust::xxh3::Xxh3Builder;
 
 /// The number of trials to run to ensure a bad seed does not
@@ -24,6 +25,41 @@ const REQUIRED_TRIALS: u64 = 90;
 const SIZES: &[usize] = &[1, 10, 100, 1000, 100_000];
 #[cfg(not(feature = "slow_tests"))]
 const SIZES: &[usize] = &[1, 10, 100, 1000];
+
+#[test]
+fn test_min_log_2_num_reg() -> Result<()> {
+    fn test_word<W: Word>() {
+        let sizes = SIZES;
+
+        for &size in sizes {
+            let builder = HyperLogLogBuilder::new(size).word_type::<u16>();
+            let min_log2m = builder.min_log_2_num_reg();
+            assert!(
+                builder
+                    .clone()
+                    .log_2_num_reg(min_log2m)
+                    .build::<()>()
+                    .is_ok(),
+                "size={size} with W={} gives min_log2m={min_log2m}, which is not valid",
+                std::any::type_name::<W>()
+            );
+            assert!(
+                builder.log_2_num_reg(min_log2m - 1).build::<()>().is_err(),
+                "size={size} with W={} gives min_log2m={min_log2m}, but log2m={} is valid too",
+                std::any::type_name::<W>(),
+                min_log2m - 1,
+            );
+        }
+    }
+
+    test_word::<u8>();
+    test_word::<u16>();
+    test_word::<u32>();
+    test_word::<u64>();
+    test_word::<usize>();
+
+    Ok(())
+}
 
 #[test]
 fn test_single() -> Result<()> {
