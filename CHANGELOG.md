@@ -1,6 +1,14 @@
 # Change Log
 
+## [0.3.1] - 2026-03-07
+
+### Changed
+
+- Fixed `num-primitive` version at 0.2.1.
+
 ## [0.3.0] - 2026-03-07
+
+### Changed
 
 - Removed dependency from `common_traits`, `sux`, `value_traits`, and `anyhow`,
   replacing `common_traits` with `num-primitive` and `num-traits`.
