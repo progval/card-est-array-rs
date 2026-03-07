@@ -6,8 +6,8 @@
  */
 
 use super::DefaultEstimator;
+use crate::traits::Word;
 use crate::traits::*;
-use sux::traits::Word;
 use sync_cell_slice::{SyncCell, SyncSlice};
 
 /// An array for estimators implementing a shared [`EstimationLogic`], and whose

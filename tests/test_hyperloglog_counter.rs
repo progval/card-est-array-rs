@@ -5,7 +5,6 @@
  * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
  */
 
-use anyhow::Result;
 use card_est_array::{
     impls::{HyperLogLog, HyperLogLogBuilder, SliceEstimatorArray},
     traits::{
@@ -26,7 +25,7 @@ const SIZES: &[usize] = &[1, 10, 100, 1000, 100_000];
 const SIZES: &[usize] = &[1, 10, 100, 1000];
 
 #[test]
-fn test_single() -> Result<()> {
+fn test_single() {
     let sizes = SIZES;
     let log2ms = [4, 6, 8, 12];
 
@@ -40,7 +39,7 @@ fn test_single() -> Result<()> {
                     .word_type::<u16>()
                     .log_2_num_reg(log2m)
                     .build_hasher(Xxh3Builder::new().with_seed(trial))
-                    .build()?;
+                    .build();
                 let mut est = logic.new_estimator();
                 let incr = (1 << 32) / size as i64;
                 let mut x = i64::MIN;
@@ -66,12 +65,10 @@ fn test_single() -> Result<()> {
             );
         }
     }
-
-    Ok(())
 }
 
 #[test]
-fn test_double() -> Result<()> {
+fn test_double() {
     let sizes = SIZES;
     let log2ms = [4, 6, 8, 12];
 
@@ -86,7 +83,7 @@ fn test_double() -> Result<()> {
                     .word_type::<u16>()
                     .log_2_num_reg(log2m)
                     .build_hasher(Xxh3Builder::new().with_seed(trial))
-                    .build()?;
+                    .build();
                 let mut est_0 = logic.new_estimator();
                 let mut est_1 = logic.new_estimator();
                 let incr = (1 << 32) / size as i64;
@@ -125,12 +122,10 @@ fn test_double() -> Result<()> {
             );
         }
     }
-
-    Ok(())
 }
 
 #[test]
-fn test_merge() -> Result<()> {
+fn test_merge() {
     let sizes = SIZES;
     let log2ms = [4, 6, 8, 12];
 
@@ -145,7 +140,7 @@ fn test_merge() -> Result<()> {
                     .word_type::<u16>()
                     .log_2_num_reg(log2m)
                     .build_hasher(Xxh3Builder::new().with_seed(trial))
-                    .build()?;
+                    .build();
                 let mut est_0 = logic.new_estimator();
                 let mut est_1 = logic.new_estimator();
                 let incr = (1 << 32) / (size * 2) as i64;
@@ -187,12 +182,10 @@ fn test_merge() -> Result<()> {
             );
         }
     }
-
-    Ok(())
 }
 
 #[test]
-fn test_merge_array() -> Result<()> {
+fn test_merge_array() {
     let sizes = SIZES;
     let log2ms = [4, 6, 8, 12];
 
@@ -207,7 +200,7 @@ fn test_merge_array() -> Result<()> {
                     .word_type::<u16>()
                     .log_2_num_reg(log2m)
                     .build_hasher(Xxh3Builder::new().with_seed(trial))
-                    .build()?;
+                    .build();
                 let mut estimators = SliceEstimatorArray::new(logic, 2);
                 let incr = (1 << 32) / (size * 2) as i64;
                 let mut x = i64::MIN;
@@ -255,6 +248,4 @@ fn test_merge_array() -> Result<()> {
             );
         }
     }
-
-    Ok(())
 }
