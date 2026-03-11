@@ -8,7 +8,8 @@
 use card_est_array::{
     impls::{HyperLogLog, HyperLogLogBuilder, SliceEstimatorArray},
     traits::{
-        EstimationLogic, Estimator, EstimatorArray, EstimatorArrayMut, EstimatorMut, MergeEstimator,
+        EstimationLogic, Estimator, EstimatorArray, EstimatorArrayMut, EstimatorMut,
+        MergeEstimator, Word,
     },
 };
 use xxhash_rust::xxh3::Xxh3Builder;
@@ -26,23 +27,25 @@ const SIZES: &[usize] = &[1, 10, 100, 1000];
 
 #[test]
 fn test_min_log_2_num_reg() {
-    fn test_word<W>() {
+    fn test_word<W: Word>() {
         let sizes = SIZES;
 
         for &size in sizes {
-            let builder = HyperLogLogBuilder::new(size).word_type::<u16>();
+            let builder = HyperLogLogBuilder::new(size).word_type::<W>();
             let min_log2m = builder.min_log_2_num_reg();
+
+            let result =
+                std::panic::catch_unwind(|| builder.clone().log_2_num_reg(min_log2m).build::<()>());
             assert!(
-                std::panic::catch_unwind(|| {
-                    builder.clone().log_2_num_reg(min_log2m).build::<()>()
-                })
-                .is_ok(),
+                result.is_ok(),
                 "size={size} with W={} gives min_log2m={min_log2m}, which is not valid",
                 std::any::type_name::<W>()
             );
+
+            let result =
+                std::panic::catch_unwind(|| builder.log_2_num_reg(min_log2m - 1).build::<()>());
             assert!(
-                std::panic::catch_unwind(|| { builder.log_2_num_reg(min_log2m - 1).build::<()>() })
-                    .is_err(),
+                result.is_err(),
                 "size={size} with W={} gives min_log2m={min_log2m}, but log2m={} is valid too",
                 std::any::type_name::<W>(),
                 min_log2m - 1,
@@ -50,10 +53,10 @@ fn test_min_log_2_num_reg() {
         }
     }
 
-    test_word::<u8>();
     test_word::<u16>();
     test_word::<u32>();
     test_word::<u64>();
+    test_word::<u128>();
     test_word::<usize>();
 }
 
