@@ -5,13 +5,19 @@
  * SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
  */
 
-use anyhow::{Result, ensure};
-use common_traits::{CastableFrom, CastableInto, Number, UpcastableInto};
+use num_traits::AsPrimitive;
 use std::hash::*;
 use std::num::NonZeroUsize;
 use std::{borrow::Borrow, f64::consts::LN_2};
-use sux::{bits::BitFieldVec, traits::Word};
-use value_traits::slices::{SliceByValue, SliceByValueMut};
+
+use crate::traits::Word;
+
+#[cfg(target_pointer_width = "16")]
+type DefaultWord = u16;
+#[cfg(target_pointer_width = "32")]
+type DefaultWord = u32;
+#[cfg(target_pointer_width = "64")]
+type DefaultWord = u64;
 
 use crate::traits::{EstimationLogic, MergeEstimationLogic, SliceEstimationLogic};
 
@@ -81,17 +87,18 @@ impl<T, H: Clone, W: Word> HyperLogLog<T, H, W> {
     #[inline(always)]
     fn get_register_unchecked(&self, backend: impl AsRef<[W]>, index: usize) -> W {
         let backend = backend.as_ref();
+        let bits = W::BITS as usize;
         let bit_width = self.register_size;
-        let mask = W::MAX >> (W::BITS - bit_width);
+        let mask = W::MAX >> (bits - bit_width);
         let pos = index * bit_width;
-        let word_index = pos / W::BITS;
-        let bit_index = pos % W::BITS;
+        let word_index = pos / bits;
+        let bit_index = pos % bits;
 
-        if bit_index + bit_width <= W::BITS {
+        if bit_index + bit_width <= bits {
             (unsafe { *backend.get_unchecked(word_index) } >> bit_index) & mask
         } else {
             ((unsafe { *backend.get_unchecked(word_index) } >> bit_index)
-                | (unsafe { *backend.get_unchecked(word_index + 1) } << (W::BITS - bit_index)))
+                | (unsafe { *backend.get_unchecked(word_index + 1) } << (bits - bit_index)))
                 & mask
         }
     }
@@ -100,13 +107,14 @@ impl<T, H: Clone, W: Word> HyperLogLog<T, H, W> {
     #[inline(always)]
     fn set_register_unchecked(&self, mut backend: impl AsMut<[W]>, index: usize, new_value: W) {
         let backend = backend.as_mut();
+        let bits = W::BITS as usize;
         let bit_width = self.register_size;
-        let mask = W::MAX >> (W::BITS - bit_width);
+        let mask = W::MAX >> (bits - bit_width);
         let pos = index * bit_width;
-        let word_index = pos / W::BITS;
-        let bit_index = pos % W::BITS;
+        let word_index = pos / bits;
+        let bit_index = pos % bits;
 
-        if bit_index + bit_width <= W::BITS {
+        if bit_index + bit_width <= bits {
             let mut word = unsafe { *backend.get_unchecked_mut(word_index) };
             word &= !(mask << bit_index);
             word |= new_value << bit_index;
@@ -118,18 +126,17 @@ impl<T, H: Clone, W: Word> HyperLogLog<T, H, W> {
             unsafe { *backend.get_unchecked_mut(word_index) = word };
 
             let mut word = unsafe { *backend.get_unchecked_mut(word_index + 1) };
-            word &= !(mask >> (W::BITS - bit_index));
-            word |= new_value >> (W::BITS - bit_index);
+            word &= !(mask >> (bits - bit_index));
+            word |= new_value >> (bits - bit_index);
             unsafe { *backend.get_unchecked_mut(word_index + 1) = word };
         }
     }
 }
 
-impl<
-    T: Hash,
-    H: BuildHasher + Clone,
-    W: Word + UpcastableInto<HashResult> + CastableFrom<HashResult>,
-> SliceEstimationLogic<W> for HyperLogLog<T, H, W>
+impl<T: Hash, H: BuildHasher + Clone, W: Word + Into<u64>> SliceEstimationLogic<W>
+    for HyperLogLog<T, H, W>
+where
+    u64: AsPrimitive<W>,
 {
     #[inline(always)]
     fn backend_len(&self) -> usize {
@@ -137,11 +144,9 @@ impl<
     }
 }
 
-impl<
-    T: Hash,
-    H: BuildHasher + Clone,
-    W: Word + UpcastableInto<HashResult> + CastableFrom<HashResult>,
-> EstimationLogic for HyperLogLog<T, H, W>
+impl<T: Hash, H: BuildHasher + Clone, W: Word + Into<u64>> EstimationLogic for HyperLogLog<T, H, W>
+where
+    u64: AsPrimitive<W>,
 {
     type Item = T;
     type Backend = [W];
@@ -171,7 +176,7 @@ impl<
 
         let current_value = self.get_register_unchecked(&*backend, register);
         let candidate_value = r + 1;
-        let new_value = std::cmp::max(current_value, candidate_value.cast());
+        let new_value = std::cmp::max(current_value, candidate_value.as_());
         if current_value != new_value {
             self.set_register_unchecked(backend, register, new_value);
         }
@@ -182,7 +187,7 @@ impl<
         let mut zeroes = 0;
 
         for i in 0..self.num_registers {
-            let value: u64 = self.get_register_unchecked(backend, i).upcast();
+            let value: u64 = self.get_register_unchecked(backend, i).into();
             if value == 0 {
                 zeroes += 1;
             }
@@ -214,11 +219,10 @@ pub struct HyperLogLogHelper<W> {
     mask: Vec<W>,
 }
 
-impl<
-    T: Hash,
-    H: BuildHasher + Clone,
-    W: Word + UpcastableInto<HashResult> + CastableFrom<HashResult>,
-> MergeEstimationLogic for HyperLogLog<T, H, W>
+impl<T: Hash, H: BuildHasher + Clone, W: Word + Into<u64>> MergeEstimationLogic
+    for HyperLogLog<T, H, W>
+where
+    u64: AsPrimitive<W>,
 {
     type Helper = HyperLogLogHelper<W>;
 
@@ -245,20 +249,25 @@ impl<
 
 /// Builds a [`HyperLogLog`] cardinality-estimator logic.
 #[derive(Debug, Clone)]
-pub struct HyperLogLogBuilder<H, W = usize> {
+pub struct HyperLogLogBuilder<H, W = DefaultWord> {
     build_hasher: H,
     log_2_num_registers: usize,
     num_elements: usize,
     _marker: std::marker::PhantomData<W>,
 }
 
-impl HyperLogLogBuilder<BuildHasherDefault<DefaultHasher>, usize> {
-    /// Creates a new builder for a [`HyperLogLog`] logic with a default word
-    /// type of `usize`.
+impl HyperLogLogBuilder<BuildHasherDefault<DefaultHasher>> {
+    /// Creates a new builder for a [`HyperLogLog`] logic with the default word
+    /// type (the fixed-size equivalent of `usize`).
     ///
-    /// # Arguments
-    /// * `num_elements`: an upper bound on the number of distinct elements.
+    /// # Panics
+    ///
+    /// If `n` is zero.
     pub const fn new(num_elements: usize) -> Self {
+        assert!(
+            num_elements > 0,
+            "the upper bound on the number of distinct elements must be positive"
+        );
         Self {
             build_hasher: BuildHasherDefault::new(),
             log_2_num_registers: 4,
@@ -290,7 +299,7 @@ impl HyperLogLog<(), (), ()> {
     /// # Arguments
     /// * `rsd`: the relative standard deviation to be attained.
     pub fn log_2_num_of_registers(rsd: f64) -> usize {
-        ((1.106 / rsd).pow(2.0)).log2().ceil() as usize
+        ((1.106 / rsd).powi(2)).log2().ceil() as usize
     }
 
     /// Returns the relative standard deviation corresponding to a given number
@@ -334,6 +343,11 @@ impl<H, W: Word> HyperLogLogBuilder<H, W> {
     ///
     /// # Arguments
     /// * `rsd`: the relative standard deviation to be attained.
+    ///
+    /// # Panics
+    ///
+    /// If the resulting number of registers is less than 16 (i.e., `rsd` is
+    /// too large).
     pub fn rsd(self, rsd: f64) -> Self {
         self.log_2_num_reg(HyperLogLog::log_2_num_of_registers(rsd))
     }
@@ -347,7 +361,15 @@ impl<H, W: Word> HyperLogLogBuilder<H, W> {
     /// # Arguments
     /// * `log_2_num_registers`: the logarithm of the number of registers per
     ///   estimator.
+    ///
+    /// # Panics
+    ///
+    /// If `log_2_num_registers` is less than 4.
     pub const fn log_2_num_reg(mut self, log_2_num_registers: usize) -> Self {
+        assert!(
+            log_2_num_registers >= 4,
+            "the logarithm of the number of registers per estimator should be at least 4"
+        );
         self.log_2_num_registers = log_2_num_registers;
         self
     }
@@ -364,6 +386,9 @@ impl<H, W: Word> HyperLogLogBuilder<H, W> {
 
     /// Sets the type `W` to use to represent backends.
     ///
+    /// Note that the returned builder will have a different type if `W2` is
+    /// different from `W`.
+    ///
     /// See the [`logic documentation`](HyperLogLog) for the limitations on the
     /// choice of `W2`.
     pub fn word_type<W2>(self) -> HyperLogLogBuilder<H, W2> {
@@ -376,7 +401,15 @@ impl<H, W: Word> HyperLogLogBuilder<H, W> {
     }
 
     /// Sets the upper bound on the number of elements.
+    ///
+    /// # Panics
+    ///
+    /// If `n` is zero.
     pub const fn num_elements(mut self, num_elements: usize) -> Self {
+        assert!(
+            num_elements > 0,
+            "the upper bound on the number of distinct elements must be positive"
+        );
         self.num_elements = num_elements;
         self
     }
@@ -399,26 +432,13 @@ impl<H, W: Word> HyperLogLogBuilder<H, W> {
     /// The type of objects the estimators keep track of is defined here by `T`,
     /// but it is usually inferred by the compiler.
     ///
-    /// # Errors
+    /// # Panics
     ///
-    /// Errors will be caused by consistency checks (at least 16 registers per
-    /// estimator, backend bits exactly divisible by `W::BITS`)
-    pub fn build<T>(self) -> Result<HyperLogLog<T, H, W>> {
+    /// If the estimator size in bits is not divisible by the bit width of `W`.
+    pub fn build<T>(self) -> HyperLogLog<T, H, W> {
+        let bits = W::BITS as usize;
         let log_2_num_registers = self.log_2_num_registers;
         let num_elements = self.num_elements;
-
-        ensure!(
-            num_elements > 0,
-            "the upper bound on the number of distinct elements must be positive"
-        );
-
-        // This ensures estimators are at least 16-bit-aligned.
-        ensure!(
-            log_2_num_registers >= 4,
-            "the logarithm of the number of registers per estimator should be at least 4; got {}",
-            log_2_num_registers
-        );
-
         let number_of_registers = 1 << log_2_num_registers;
         let register_size = HyperLogLog::register_size(num_elements);
         let sentinel_mask = 1 << ((1 << register_size) - 2);
@@ -433,24 +453,22 @@ impl<H, W: Word> HyperLogLogBuilder<H, W> {
         let est_size_in_bits = number_of_registers * register_size;
 
         // This ensures estimators are always aligned to W
-        ensure!(
-            number_of_registers * register_size % W::BITS == 0,
+        assert!(
+            est_size_in_bits % bits == 0,
             "W should allow estimator backends to be aligned. Use {} or smaller unsigned integer types; or increase log_2_num_registers to be >= {}",
             min_alignment(est_size_in_bits),
             self.min_log_2_num_reg(),
         );
-        let est_size_in_words = est_size_in_bits / W::BITS;
+        let est_size_in_words = est_size_in_bits / bits;
 
-        let mut msb = BitFieldVec::new(register_size, number_of_registers);
-        let mut lsb = BitFieldVec::new(register_size, number_of_registers);
-        let msb_w = W::ONE << (register_size - 1);
-        let lsb_w = W::ONE;
-        for i in 0..number_of_registers {
-            msb.set_value(i, msb_w);
-            lsb.set_value(i, lsb_w);
-        }
+        let msb_mask = build_register_mask(
+            est_size_in_words,
+            register_size,
+            W::ONE << (register_size - 1),
+        );
+        let lsb_mask = build_register_mask(est_size_in_words, register_size, W::ONE);
 
-        Ok(HyperLogLog {
+        HyperLogLog {
             num_registers: number_of_registers,
             num_registers_minus_1,
             log_2_num_registers,
@@ -458,11 +476,11 @@ impl<H, W: Word> HyperLogLogBuilder<H, W> {
             alpha_m_m: alpha * (number_of_registers as f64).powi(2),
             sentinel_mask,
             build_hasher: self.build_hasher,
-            msb_mask: msb.as_slice().into(),
-            lsb_mask: lsb.as_slice().into(),
+            msb_mask,
+            lsb_mask,
             words_per_estimator: est_size_in_words,
             _marker: std::marker::PhantomData,
-        })
+        }
     }
 }
 
@@ -477,6 +495,25 @@ impl<T, H, W> std::fmt::Display for HyperLogLog<T, H, W> {
             (self.num_registers * self.register_size) / 8
         )
     }
+}
+
+/// Builds a mask of `num_words` words by repeating a `register_size`-bit
+/// pattern across all register positions.
+fn build_register_mask<W: Word>(num_words: usize, register_size: usize, pattern: W) -> Box<[W]> {
+    let bits = W::BITS as usize;
+    let total_bits = num_words * bits;
+    let mut result = vec![W::ZERO; num_words];
+    let mut bit_pos = 0;
+    while bit_pos < total_bits {
+        let word_index = bit_pos / bits;
+        let bit_index = bit_pos % bits;
+        result[word_index] |= pattern << bit_index;
+        if bit_index + register_size > bits && word_index + 1 < num_words {
+            result[word_index + 1] |= pattern >> (bits - bit_index);
+        }
+        bit_pos += register_size;
+    }
+    result.into_boxed_slice()
 }
 
 /// Performs a multiple precision subtraction, leaving the result in the first operand.
@@ -524,7 +561,7 @@ fn merge_hyperloglog_bitwise<W: Word>(
 
     let register_size_minus_1 = register_size - 1;
     let num_words_minus_1 = x.len() - 1;
-    let shift_register_size_minus_1 = W::BITS - register_size_minus_1;
+    let shift_register_size_minus_1 = W::BITS as usize - register_size_minus_1;
 
     acc.clear();
     mask.clear();
@@ -613,7 +650,7 @@ fn merge_hyperloglog_bitwise<W: Word>(
         });
 }
 
-fn highest_power_of_2_dividing(n: NonZeroUsize) -> usize {
+fn highest_power_of_2_dividing(n: NonZeroUsize) -> u32 {
     1 << n.trailing_zeros()
 }
 
